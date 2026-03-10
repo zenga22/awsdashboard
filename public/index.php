@@ -11,6 +11,13 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
+// ---------------------------------------------------------------------------
+// AWS CLI configuration – point to the shared AWS config/credentials directory
+// so the AWS CLI can locate profiles when running under the web server user.
+// ---------------------------------------------------------------------------
+putenv('AWS_CONFIG_FILE=/var/www/.aws/config');
+putenv('AWS_SHARED_CREDENTIALS_FILE=/var/www/.aws/credentials');
+
 use AwsDashboard\Config\ProfileManager;
 use AwsDashboard\Exception\AwsException;
 use AwsDashboard\Services\Ec2Service;
