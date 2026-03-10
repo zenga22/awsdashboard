@@ -2,8 +2,10 @@
 
 namespace AwsDashboard\Exception;
 
+use Aws\Exception\AwsException as SdkException;
+
 /**
- * Represents a failed AWS CLI call with structured error details.
+ * Represents a failed AWS SDK call with structured error details.
  */
 class AwsException extends \RuntimeException
 {
@@ -29,6 +31,21 @@ class AwsException extends \RuntimeException
         parent::__construct($fullMessage, 0, $previous);
     }
 
+    /**
+     * Create from an AWS SDK exception with full context.
+     */
+    public static function fromSdkException(
+        string $service,
+        string $command,
+        SdkException $e
+    ): self {
+        $errorCode = $e->getAwsErrorCode() ?? 'UnknownError';
+        $message   = $e->getAwsErrorMessage() ?? $e->getMessage();
+        $rawOutput = $e->getMessage();
+
+        return new self($service, $command, $errorCode, $message, $rawOutput, $e);
+    }
+
     public function getAwsService(): string
     {
         return $this->awsService;
@@ -49,33 +66,6 @@ class AwsException extends \RuntimeException
         return $this->rawOutput;
     }
 
-    /**
-     * Parse AWS CLI error output into an AwsException.
-     */
-    public static function fromCliOutput(
-        string $service,
-        string $command,
-        string $output
-    ): self {
-        $errorCode = 'UnknownError';
-        $message   = trim($output);
-
-        // AWS CLI errors follow: "An error occurred (ErrorCode) when calling ..."
-        if (preg_match('/An error occurred \(([^)]+)\) when calling the (\S+) operation: (.+)/s', $output, $m)) {
-            $errorCode = $m[1];
-            $message   = trim($m[3]);
-        } elseif (preg_match('/Could not connect to the endpoint URL/', $output)) {
-            $errorCode = 'EndpointConnectionError';
-        } elseif (preg_match('/Unable to locate credentials/', $output)) {
-            $errorCode = 'NoCredentialsError';
-        } elseif (preg_match('/The config profile \((\S+)\) could not be found/', $output, $m)) {
-            $errorCode = 'ProfileNotFound';
-            $message   = "Profile '{$m[1]}' not found.";
-        }
-
-        return new self($service, $command, $errorCode, $message, $output);
-    }
-
     public function isAccessDenied(): bool
     {
         return in_array($this->errorCode, ['AccessDenied', 'AccessDeniedException', 'UnauthorizedAccess'], true);
@@ -83,17 +73,17 @@ class AwsException extends \RuntimeException
 
     public function isNotFound(): bool
     {
-        return in_array($this->errorCode, ['404', 'NoSuchBucket', 'NoSuchKey', 'InvalidInstanceID.NotFound'], true);
+        return in_array($this->errorCode, ['404', 'NoSuchBucket', 'NoSuchKey', 'InvalidInstanceID.NotFound', 'NotFound'], true);
     }
 
     public function isCredentialError(): bool
     {
-        return in_array($this->errorCode, ['NoCredentialsError', 'ExpiredTokenException', 'ProfileNotFound'], true);
+        return in_array($this->errorCode, ['NoCredentialsError', 'ExpiredTokenException', 'ProfileNotFound', 'CredentialsException'], true);
     }
 
     public function isConnectionError(): bool
     {
-        return $this->errorCode === 'EndpointConnectionError';
+        return in_array($this->errorCode, ['EndpointConnectionError', 'NetworkingException'], true);
     }
 
     /**
