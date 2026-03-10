@@ -2,23 +2,37 @@
 
 namespace AwsDashboard\Services;
 
+use AwsDashboard\Exception\AwsException;
+
 class S3Service
 {
     /**
      * List S3 buckets. The AWS CLI returns all buckets (S3 is global),
      * but we filter by region via get-bucket-location if a region filter is provided.
+     *
+     * @throws AwsException
      */
     public function getBuckets(string $profile, ?string $regionFilter = null): array
     {
         $result = AwsCli::run('s3api', 'list-buckets', $profile, 'us-east-1');
-        if (!$result || !isset($result['Buckets'])) {
+
+        if (!isset($result['Buckets'])) {
             return [];
         }
 
         $buckets = [];
         foreach ($result['Buckets'] as $bucket) {
             $name = $bucket['Name'];
-            $bucketRegion = $this->getBucketRegion($profile, $name);
+
+            try {
+                $bucketRegion = $this->getBucketRegion($profile, $name);
+            } catch (AwsException $e) {
+                // Skip buckets we cannot inspect (permissions, deleted, etc.)
+                if ($e->isAccessDenied() || $e->isNotFound()) {
+                    continue;
+                }
+                throw $e;
+            }
 
             if ($regionFilter !== null && $bucketRegion !== $regionFilter) {
                 continue;
@@ -37,20 +51,19 @@ class S3Service
 
     /**
      * Determine a bucket's region.
+     *
+     * @throws AwsException
+     * @throws \InvalidArgumentException
      */
     public function getBucketRegion(string $profile, string $bucketName): string
     {
         if (!$this->isValidBucketName($bucketName)) {
-            return 'unknown';
+            throw new \InvalidArgumentException("Invalid bucket name: {$bucketName}");
         }
 
         $result = AwsCli::run('s3api', 'get-bucket-location', $profile, 'us-east-1', [
             '--bucket' => $bucketName,
         ]);
-
-        if (!$result) {
-            return 'unknown';
-        }
 
         // LocationConstraint is null for us-east-1
         $location = $result['LocationConstraint'] ?? null;
@@ -59,7 +72,9 @@ class S3Service
 
     /**
      * List objects in a bucket (optionally with prefix for folder drilling).
-     * Uses list-objects-v2 with delimiter for folder-style navigation.
+     *
+     * @throws AwsException
+     * @throws \InvalidArgumentException
      */
     public function listObjects(
         string $profile,
@@ -69,7 +84,7 @@ class S3Service
         ?string $continuationToken = null
     ): array {
         if (!$this->isValidBucketName($bucket)) {
-            return ['objects' => [], 'prefixes' => [], 'nextToken' => null, 'totalSize' => 0, 'objectCount' => 0];
+            throw new \InvalidArgumentException("Invalid bucket name: {$bucket}");
         }
 
         $extra = [
@@ -91,7 +106,7 @@ class S3Service
         $totalSize = 0;
         $objectCount = 0;
 
-        if ($result && isset($result['Contents'])) {
+        if (isset($result['Contents'])) {
             foreach ($result['Contents'] as $obj) {
                 $key = $obj['Key'];
                 // Skip the prefix itself (folder marker)
@@ -113,7 +128,7 @@ class S3Service
         }
 
         $prefixes = [];
-        if ($result && isset($result['CommonPrefixes'])) {
+        if (isset($result['CommonPrefixes'])) {
             foreach ($result['CommonPrefixes'] as $cp) {
                 $prefixes[] = $cp['Prefix'];
             }
@@ -133,20 +148,26 @@ class S3Service
 
     /**
      * Get detailed object metadata.
+     *
+     * @throws AwsException
+     * @throws \InvalidArgumentException
      */
     public function getObjectDetails(string $profile, string $region, string $bucket, string $key): ?array
     {
         if (!$this->isValidBucketName($bucket)) {
-            return null;
+            throw new \InvalidArgumentException("Invalid bucket name: {$bucket}");
         }
 
-        $result = AwsCli::run('s3api', 'head-object', $profile, $region, [
-            '--bucket' => $bucket,
-            '--key'    => $key,
-        ]);
-
-        if (!$result) {
-            return null;
+        try {
+            $result = AwsCli::run('s3api', 'head-object', $profile, $region, [
+                '--bucket' => $bucket,
+                '--key'    => $key,
+            ]);
+        } catch (AwsException $e) {
+            if ($e->isNotFound()) {
+                return null;
+            }
+            throw $e;
         }
 
         return [
@@ -167,26 +188,31 @@ class S3Service
 
     /**
      * Generate a pre-signed download URL for an object (valid 1 hour).
+     *
+     * @throws AwsException
+     * @throws \InvalidArgumentException
      */
-    public function getDownloadUrl(string $profile, string $region, string $bucket, string $key): ?string
+    public function getDownloadUrl(string $profile, string $region, string $bucket, string $key): string
     {
         if (!$this->isValidBucketName($bucket)) {
-            return null;
+            throw new \InvalidArgumentException("Invalid bucket name: {$bucket}");
         }
 
         $s3Uri = 's3://' . $bucket . '/' . $key;
         $cmd = sprintf(
-            'aws s3 presign %s --profile %s --region %s --expires-in 3600 2>&1',
+            'aws s3 presign %s --profile %s --region %s --expires-in 3600',
             escapeshellarg($s3Uri),
             escapeshellarg($profile),
             escapeshellarg($region)
         );
 
-        $output = trim(shell_exec($cmd) ?? '');
-        if (str_starts_with($output, 'http')) {
-            return $output;
+        $output = AwsCli::rawCommand($cmd);
+
+        if (!str_starts_with($output, 'http')) {
+            throw new AwsException('s3', 'presign', 'PresignError', 'Failed to generate pre-signed URL.', $output);
         }
-        return null;
+
+        return $output;
     }
 
     /**
@@ -200,31 +226,38 @@ class S3Service
             return ['success' => false, 'message' => 'Invalid bucket name.'];
         }
 
-        $result = AwsCli::run('s3api', 'delete-object', $profile, $region, [
-            '--bucket' => $bucket,
-            '--key'    => $key,
-        ]);
-
-        // delete-object returns metadata on success (or empty for non-versioned)
-        if ($result !== null || $result === null) {
-            // Check if the delete actually worked by seeing if head-object now fails
-            $check = $this->getObjectDetails($profile, $region, $bucket, $key);
-            if ($check === null) {
-                return ['success' => true, 'message' => "Object '{$key}' deleted successfully."];
-            }
+        try {
+            AwsCli::run('s3api', 'delete-object', $profile, $region, [
+                '--bucket' => $bucket,
+                '--key'    => $key,
+            ]);
+        } catch (AwsException $e) {
+            return ['success' => false, 'message' => $e->getUserMessage()];
         }
 
-        return ['success' => false, 'message' => 'Failed to delete object. Check permissions.'];
+        // Verify the delete worked
+        try {
+            $check = $this->getObjectDetails($profile, $region, $bucket, $key);
+            if ($check !== null) {
+                return ['success' => false, 'message' => 'Object still exists after delete. Check bucket versioning.'];
+            }
+        } catch (AwsException) {
+            // head-object failing means the object is gone — success
+        }
+
+        return ['success' => true, 'message' => "Object '{$key}' deleted successfully."];
     }
 
     /**
      * Get bucket-level space usage summary.
-     * Uses s3api list-objects-v2 to sum all object sizes.
+     *
+     * @throws AwsException
+     * @throws \InvalidArgumentException
      */
     public function getBucketSizeSummary(string $profile, string $region, string $bucket): array
     {
         if (!$this->isValidBucketName($bucket)) {
-            return ['totalSize' => 0, 'objectCount' => 0];
+            throw new \InvalidArgumentException("Invalid bucket name: {$bucket}");
         }
 
         $extra = [
@@ -234,7 +267,7 @@ class S3Service
 
         $result = AwsCli::run('s3api', 'list-objects-v2', $profile, $region, $extra);
 
-        if ($result && is_array($result) && count($result) === 2) {
+        if (is_array($result) && count($result) === 2) {
             return [
                 'totalSize'   => $result[0] ?? 0,
                 'objectCount' => $result[1] ?? 0,

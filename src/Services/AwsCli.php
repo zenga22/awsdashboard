@@ -2,10 +2,14 @@
 
 namespace AwsDashboard\Services;
 
+use AwsDashboard\Exception\AwsException;
+
 /**
  * Thin wrapper around the AWS CLI.
+ *
  * All AWS interactions go through this class so that profile and region
- * handling is consistent, and all output is JSON-decoded in one place.
+ * handling is consistent. On failure, an AwsException is thrown with
+ * structured error details parsed from the CLI output.
  */
 class AwsCli
 {
@@ -17,7 +21,9 @@ class AwsCli
      * @param string $profile   AWS profile name
      * @param string $region    AWS region code
      * @param array  $extra     Additional CLI arguments
-     * @return array|null       Decoded JSON or null on failure
+     * @return array            Decoded JSON
+     *
+     * @throws AwsException on any CLI failure
      */
     public static function run(
         string $service,
@@ -25,7 +31,7 @@ class AwsCli
         string $profile,
         string $region,
         array $extra = []
-    ): ?array {
+    ): array {
         $parts = [
             'aws',
             escapeshellarg($service),
@@ -49,19 +55,67 @@ class AwsCli
         $output = shell_exec($cmd);
 
         if ($output === null) {
-            return null;
+            throw new AwsException(
+                $service,
+                $command,
+                'ExecutionError',
+                'AWS CLI command returned no output (process may have failed to start).'
+            );
         }
 
-        $decoded = json_decode($output, true);
-        return is_array($decoded) ? $decoded : null;
+        $trimmed = trim($output);
+
+        // Detect CLI error messages before attempting JSON decode
+        if (str_contains($trimmed, 'An error occurred')
+            || str_contains($trimmed, 'Could not connect')
+            || str_contains($trimmed, 'Unable to locate credentials')
+            || str_contains($trimmed, 'config profile')
+        ) {
+            throw AwsException::fromCliOutput($service, $command, $trimmed);
+        }
+
+        $decoded = json_decode($trimmed, true);
+
+        if (!is_array($decoded)) {
+            // Some commands return empty output on success (e.g. reboot-instances)
+            if ($trimmed === '') {
+                return [];
+            }
+            throw new AwsException(
+                $service,
+                $command,
+                'InvalidResponse',
+                'AWS CLI returned non-JSON output.',
+                $trimmed
+            );
+        }
+
+        return $decoded;
     }
 
     /**
      * Execute a raw AWS CLI command string and return raw output.
+     *
+     * @throws AwsException on failure
      */
-    public static function rawCommand(string $cmd): ?string
+    public static function rawCommand(string $cmd): string
     {
-        return shell_exec($cmd . ' 2>&1');
+        $output = shell_exec($cmd . ' 2>&1');
+
+        if ($output === null) {
+            throw new AwsException('cli', 'raw', 'ExecutionError', 'Command returned no output.');
+        }
+
+        $trimmed = trim($output);
+
+        if (str_contains($trimmed, 'An error occurred')
+            || str_contains($trimmed, 'Could not connect')
+            || str_contains($trimmed, 'Unable to locate credentials')
+        ) {
+            throw AwsException::fromCliOutput('cli', 'raw', $trimmed);
+        }
+
+        return $trimmed;
     }
 
     /**

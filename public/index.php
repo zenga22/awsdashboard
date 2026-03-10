@@ -12,7 +12,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use AwsDashboard\Config\ProfileManager;
-use AwsDashboard\Services\AwsCli;
+use AwsDashboard\Exception\AwsException;
 use AwsDashboard\Services\Ec2Service;
 use AwsDashboard\Services\S3Service;
 
@@ -137,6 +137,8 @@ $breadcrumbs = [];
 $pageTitle   = 'Dashboard';
 
 // Prepare page-specific data and render
+try {
+
 switch ($page) {
 
     // -----------------------------------------------------------------------
@@ -313,6 +315,39 @@ switch ($page) {
             echo '<a href="' . BASE_PATH . '?page=dashboard" class="btn btn-primary" style="margin-top:16px;">Go to Dashboard</a></div>';
         };
         break;
+}
+
+} catch (AwsException $e) {
+    $flashError = $e->getUserMessage();
+    $pageTitle  = 'Error';
+    $content    = function () use ($e) {
+        echo '<div class="empty-state">';
+        echo '<div class="icon">&#9888;</div>';
+        echo '<h2>AWS Error</h2>';
+        echo '<p>' . htmlspecialchars($e->getUserMessage()) . '</p>';
+        echo '<details style="margin-top:12px;text-align:left;max-width:600px;">';
+        echo '<summary style="cursor:pointer;color:#687078;">Technical Details</summary>';
+        echo '<pre style="margin-top:8px;padding:12px;background:#f8f8f8;border-radius:4px;font-size:12px;overflow-x:auto;">';
+        echo 'Service:  ' . htmlspecialchars($e->getAwsService()) . "\n";
+        echo 'Command:  ' . htmlspecialchars($e->getAwsCommand()) . "\n";
+        echo 'Code:     ' . htmlspecialchars($e->getErrorCode()) . "\n";
+        if ($e->getRawOutput()) {
+            echo "\nCLI Output:\n" . htmlspecialchars($e->getRawOutput());
+        }
+        echo '</pre></details>';
+        echo '<a href="' . BASE_PATH . '?page=dashboard" class="btn btn-primary" style="margin-top:16px;">Go to Dashboard</a>';
+        echo '</div>';
+    };
+} catch (\InvalidArgumentException $e) {
+    $flashError = $e->getMessage();
+    $pageTitle  = 'Invalid Request';
+    $content    = function () use ($e) {
+        echo '<div class="empty-state">';
+        echo '<div class="icon">&#9888;</div>';
+        echo '<p>' . htmlspecialchars($e->getMessage()) . '</p>';
+        echo '<a href="' . BASE_PATH . '?page=dashboard" class="btn btn-primary" style="margin-top:16px;">Go to Dashboard</a>';
+        echo '</div>';
+    };
 }
 
 // ---------------------------------------------------------------------------

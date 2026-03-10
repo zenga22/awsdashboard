@@ -2,15 +2,20 @@
 
 namespace AwsDashboard\Services;
 
+use AwsDashboard\Exception\AwsException;
+
 class Ec2Service
 {
     /**
      * List all EC2 instances in a given profile/region.
+     *
+     * @throws AwsException
      */
     public function getInstances(string $profile, string $region): array
     {
         $result = AwsCli::run('ec2', 'describe-instances', $profile, $region);
-        if (!$result || !isset($result['Reservations'])) {
+
+        if (!isset($result['Reservations'])) {
             return [];
         }
 
@@ -52,18 +57,28 @@ class Ec2Service
 
     /**
      * Get detail for a single EC2 instance.
+     *
+     * @throws AwsException
+     * @throws \InvalidArgumentException if instance ID format is invalid
      */
     public function getInstance(string $profile, string $region, string $instanceId): ?array
     {
         if (!preg_match('/^i-[0-9a-f]+$/', $instanceId)) {
-            return null;
+            throw new \InvalidArgumentException("Invalid instance ID format: {$instanceId}");
         }
 
-        $result = AwsCli::run('ec2', 'describe-instances', $profile, $region, [
-            '--instance-ids' => $instanceId,
-        ]);
+        try {
+            $result = AwsCli::run('ec2', 'describe-instances', $profile, $region, [
+                '--instance-ids' => $instanceId,
+            ]);
+        } catch (AwsException $e) {
+            if ($e->isNotFound()) {
+                return null;
+            }
+            throw $e;
+        }
 
-        if (!$result || empty($result['Reservations'][0]['Instances'][0])) {
+        if (empty($result['Reservations'][0]['Instances'][0])) {
             return null;
         }
 
@@ -123,30 +138,26 @@ class Ec2Service
             return ['success' => false, 'message' => 'Invalid instance ID format.'];
         }
 
-        $cmd = sprintf(
-            'aws ec2 reboot-instances --profile %s --region %s --instance-ids %s 2>&1',
-            escapeshellarg($profile),
-            escapeshellarg($region),
-            escapeshellarg($instanceId)
-        );
-
-        $output = shell_exec($cmd);
-
-        // reboot-instances returns empty output on success
-        if ($output === null || trim($output) === '') {
+        try {
+            AwsCli::run('ec2', 'reboot-instances', $profile, $region, [
+                '--instance-ids' => $instanceId,
+            ]);
             return ['success' => true, 'message' => "Reboot initiated for {$instanceId}."];
+        } catch (AwsException $e) {
+            return ['success' => false, 'message' => $e->getUserMessage()];
         }
-
-        return ['success' => false, 'message' => trim($output)];
     }
 
     /**
      * Get reserved instances for a profile/region.
+     *
+     * @throws AwsException
      */
     public function getReservedInstances(string $profile, string $region): array
     {
         $result = AwsCli::run('ec2', 'describe-reserved-instances', $profile, $region);
-        if (!$result || !isset($result['ReservedInstances'])) {
+
+        if (!isset($result['ReservedInstances'])) {
             return [];
         }
 
@@ -177,6 +188,8 @@ class Ec2Service
 
     /**
      * Get a summary count of instances by state.
+     *
+     * @throws AwsException
      */
     public function getInstanceSummary(string $profile, string $region): array
     {
