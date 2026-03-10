@@ -1,0 +1,13 @@
+{
+    "name": "awsdashboard/aws-dashboard",
+    "description": "PHP AWS Dashboard for managing EC2 and S3 across multiple profiles and regions",
+    "type": "project",
+    "require": {
+        "php": ">=8.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "AwsDashboard\\": "src/"
+        }
+    }
+}
