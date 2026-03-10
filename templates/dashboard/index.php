@@ -33,11 +33,11 @@
     <div class="card-header">Quick Navigation</div>
     <div class="card-body">
         <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-            <a href="/?page=ec2-instances&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>"
+            <a href="<?= $basePath ?>?page=ec2-instances&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>"
                class="btn btn-primary">View EC2 Instances</a>
-            <a href="/?page=ec2-reserved&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>"
+            <a href="<?= $basePath ?>?page=ec2-reserved&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>"
                class="btn btn-outline">View Reserved Instances</a>
-            <a href="/?page=s3-buckets&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>"
+            <a href="<?= $basePath ?>?page=s3-buckets&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>"
                class="btn btn-primary">Browse S3 Buckets</a>
         </div>
     </div>
@@ -49,7 +49,7 @@
     <div class="card-body">
         <div class="region-tabs">
             <?php foreach ($regions as $r): ?>
-                <a href="/?page=dashboard&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($r) ?>"
+                <a href="<?= $basePath ?>?page=dashboard&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($r) ?>"
                    class="<?= $r === $currentRegion ? 'active' : '' ?>">
                     <?= htmlspecialchars($r) ?>
                     <br><small><?= htmlspecialchars($allRegions[$r] ?? '') ?></small>

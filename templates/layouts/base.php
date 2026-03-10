@@ -26,7 +26,7 @@ $currentRegion  = $currentRegion ?? 'us-east-1';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($pageTitle) ?> – AWS Dashboard</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="<?= htmlspecialchars($basePath) ?>css/style.css">
 </head>
 <body>
 <div class="app-wrapper">
@@ -38,7 +38,7 @@ $currentRegion  = $currentRegion ?? 'us-east-1';
         </div>
         <ul class="sidebar-nav">
             <li>
-                <a href="/?page=dashboard&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>"
+                <a href="<?= $basePath ?>?page=dashboard&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>"
                    class="<?= $activeNav === 'dashboard' ? 'active' : '' ?>">
                     &#9632; <span>Dashboard</span>
                 </a>
@@ -46,13 +46,13 @@ $currentRegion  = $currentRegion ?? 'us-east-1';
 
             <li class="nav-section">EC2</li>
             <li>
-                <a href="/?page=ec2-instances&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>"
+                <a href="<?= $basePath ?>?page=ec2-instances&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>"
                    class="<?= $activeNav === 'ec2-instances' ? 'active' : '' ?>">
                     &#9654; <span>Instances</span>
                 </a>
             </li>
             <li>
-                <a href="/?page=ec2-reserved&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>"
+                <a href="<?= $basePath ?>?page=ec2-reserved&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>"
                    class="<?= $activeNav === 'ec2-reserved' ? 'active' : '' ?>">
                     &#9654; <span>Reserved Instances</span>
                 </a>
@@ -60,7 +60,7 @@ $currentRegion  = $currentRegion ?? 'us-east-1';
 
             <li class="nav-section">S3</li>
             <li>
-                <a href="/?page=s3-buckets&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>"
+                <a href="<?= $basePath ?>?page=s3-buckets&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>"
                    class="<?= $activeNav === 's3-buckets' ? 'active' : '' ?>">
                     &#9654; <span>Buckets</span>
                 </a>
@@ -74,7 +74,7 @@ $currentRegion  = $currentRegion ?? 'us-east-1';
         <!-- Top bar -->
         <header class="topbar">
             <ul class="breadcrumb">
-                <li><a href="/?page=dashboard&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>">Home</a></li>
+                <li><a href="<?= $basePath ?>?page=dashboard&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>">Home</a></li>
                 <?php foreach ($breadcrumbs as $crumb): ?>
                     <li>
                         <?php if ($crumb['url']): ?>
@@ -87,7 +87,7 @@ $currentRegion  = $currentRegion ?? 'us-east-1';
             </ul>
 
             <div class="profile-selector" style="display: flex; gap: 10px; align-items: center;">
-                <form method="get" id="profile-form" style="display: flex; gap: 8px;">
+                <form method="get" action="<?= htmlspecialchars($basePath) ?>" id="profile-form" style="display: flex; gap: 8px;">
                     <input type="hidden" name="page" value="<?= htmlspecialchars($_GET['page'] ?? 'dashboard') ?>">
 
                     <label style="font-size: 12px; color: #687078; display: flex; align-items: center; gap: 4px;">
@@ -152,6 +152,6 @@ $currentRegion  = $currentRegion ?? 'us-east-1';
     </div>
 </div>
 
-<script src="/js/dashboard.js"></script>
+<script src="<?= htmlspecialchars($basePath) ?>js/dashboard.js"></script>
 </body>
 </html>

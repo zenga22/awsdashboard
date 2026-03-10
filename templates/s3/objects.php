@@ -28,7 +28,7 @@ use AwsDashboard\Services\S3Service;
 
 <!-- Path breadcrumb -->
 <div class="path-breadcrumb">
-    <a href="/?page=s3-objects&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>&bucket=<?= urlencode($bucket) ?>">
+    <a href="<?= $basePath ?>?page=s3-objects&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>&bucket=<?= urlencode($bucket) ?>">
         <?= htmlspecialchars($bucket) ?>
     </a>
     <?php
@@ -38,7 +38,7 @@ use AwsDashboard\Services\S3Service;
         foreach ($parts as $part) {
             $accumulated .= $part . '/';
             echo '<span class="sep">/</span>';
-            echo '<a href="/?page=s3-objects&profile=' . urlencode($currentProfile) .
+            echo '<a href="' . $basePath . '?page=s3-objects&profile=' . urlencode($currentProfile) .
                  '&region=' . urlencode($currentRegion) .
                  '&bucket=' . urlencode($bucket) .
                  '&prefix=' . urlencode($accumulated) . '">' .
@@ -53,7 +53,7 @@ use AwsDashboard\Services\S3Service;
     <div class="card-header">
         Contents
         <?php if ($prefix !== ''): ?>
-            <a href="/?page=s3-objects&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>&bucket=<?= urlencode($bucket) ?>&prefix=<?= urlencode(dirname($prefix) === '.' ? '' : dirname($prefix) . '/') ?>"
+            <a href="<?= $basePath ?>?page=s3-objects&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>&bucket=<?= urlencode($bucket) ?>&prefix=<?= urlencode(dirname($prefix) === '.' ? '' : dirname($prefix) . '/') ?>"
                class="btn btn-outline btn-sm">&#8593; Up</a>
         <?php endif; ?>
     </div>
@@ -83,7 +83,7 @@ use AwsDashboard\Services\S3Service;
                         <tr>
                             <td>
                                 &#128193;
-                                <a href="/?page=s3-objects&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>&bucket=<?= urlencode($bucket) ?>&prefix=<?= urlencode($folderPrefix) ?>">
+                                <a href="<?= $basePath ?>?page=s3-objects&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>&bucket=<?= urlencode($bucket) ?>&prefix=<?= urlencode($folderPrefix) ?>">
                                     <?= htmlspecialchars($folderName) ?>/
                                 </a>
                             </td>
@@ -100,7 +100,7 @@ use AwsDashboard\Services\S3Service;
                         <tr>
                             <td>
                                 &#128196;
-                                <a href="/?page=s3-detail&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>&bucket=<?= urlencode($bucket) ?>&key=<?= urlencode($obj['Key']) ?>">
+                                <a href="<?= $basePath ?>?page=s3-detail&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>&bucket=<?= urlencode($bucket) ?>&key=<?= urlencode($obj['Key']) ?>">
                                     <?= htmlspecialchars($obj['DisplayName']) ?>
                                 </a>
                             </td>
@@ -109,7 +109,7 @@ use AwsDashboard\Services\S3Service;
                             <td><?= htmlspecialchars($obj['LastModified']) ?></td>
                             <td><?= htmlspecialchars($obj['StorageClass']) ?></td>
                             <td>
-                                <a href="/?page=s3-detail&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>&bucket=<?= urlencode($bucket) ?>&key=<?= urlencode($obj['Key']) ?>"
+                                <a href="<?= $basePath ?>?page=s3-detail&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>&bucket=<?= urlencode($bucket) ?>&key=<?= urlencode($obj['Key']) ?>"
                                    class="btn btn-outline btn-sm">Details</a>
                             </td>
                         </tr>
@@ -120,7 +120,7 @@ use AwsDashboard\Services\S3Service;
 
             <?php if ($objectData['nextToken']): ?>
                 <div style="margin-top: 16px; text-align: center;">
-                    <a href="/?page=s3-objects&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>&bucket=<?= urlencode($bucket) ?>&prefix=<?= urlencode($prefix) ?>&token=<?= urlencode($objectData['nextToken']) ?>"
+                    <a href="<?= $basePath ?>?page=s3-objects&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>&bucket=<?= urlencode($bucket) ?>&prefix=<?= urlencode($prefix) ?>&token=<?= urlencode($objectData['nextToken']) ?>"
                        class="btn btn-outline">Load More</a>
                 </div>
             <?php endif; ?>

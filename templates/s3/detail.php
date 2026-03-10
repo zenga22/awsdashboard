@@ -11,7 +11,7 @@ use AwsDashboard\Services\S3Service;
 
 <!-- Path breadcrumb -->
 <div class="path-breadcrumb">
-    <a href="/?page=s3-objects&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>&bucket=<?= urlencode($bucket) ?>">
+    <a href="<?= $basePath ?>?page=s3-objects&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>&bucket=<?= urlencode($bucket) ?>">
         <?= htmlspecialchars($bucket) ?>
     </a>
     <?php
@@ -21,7 +21,7 @@ use AwsDashboard\Services\S3Service;
     foreach ($keyParts as $part) {
         $accumulated .= $part . '/';
         echo '<span class="sep">/</span>';
-        echo '<a href="/?page=s3-objects&profile=' . urlencode($currentProfile) .
+        echo '<a href="' . $basePath . '?page=s3-objects&profile=' . urlencode($currentProfile) .
              '&region=' . urlencode($currentRegion) .
              '&bucket=' . urlencode($bucket) .
              '&prefix=' . urlencode($accumulated) . '">' .
@@ -53,7 +53,7 @@ use AwsDashboard\Services\S3Service;
         </button>
     </form>
 
-    <a href="/?page=s3-objects&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>&bucket=<?= urlencode($bucket) ?>&prefix=<?= urlencode($accumulated ?? '') ?>"
+    <a href="<?= $basePath ?>?page=s3-objects&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>&bucket=<?= urlencode($bucket) ?>&prefix=<?= urlencode($accumulated ?? '') ?>"
        class="btn btn-outline">&#8592; Back to Folder</a>
 </div>
 

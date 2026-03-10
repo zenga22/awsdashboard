@@ -11,12 +11,12 @@ use AwsDashboard\Services\S3Service;
 
 <!-- Region tabs -->
 <div class="region-tabs">
-    <a href="/?page=s3-buckets&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>&filter=all"
+    <a href="<?= $basePath ?>?page=s3-buckets&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>&filter=all"
        class="<?= ($regionFilter ?? '') === 'all' ? 'active' : '' ?>">
         All Regions
     </a>
     <?php foreach ($regions as $r): ?>
-        <a href="/?page=s3-buckets&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($r) ?>&filter=region"
+        <a href="<?= $basePath ?>?page=s3-buckets&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($r) ?>&filter=region"
            class="<?= $r === $currentRegion && ($regionFilter ?? 'region') === 'region' ? 'active' : '' ?>">
             <?= htmlspecialchars($r) ?>
         </a>
@@ -62,14 +62,14 @@ use AwsDashboard\Services\S3Service;
                     <?php foreach ($buckets as $bucket): ?>
                         <tr>
                             <td>
-                                <a href="/?page=s3-objects&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($bucket['Region']) ?>&bucket=<?= urlencode($bucket['Name']) ?>">
+                                <a href="<?= $basePath ?>?page=s3-objects&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($bucket['Region']) ?>&bucket=<?= urlencode($bucket['Name']) ?>">
                                     <?= htmlspecialchars($bucket['Name']) ?>
                                 </a>
                             </td>
                             <td><?= htmlspecialchars($bucket['Region']) ?></td>
                             <td><?= htmlspecialchars($bucket['CreationDate']) ?></td>
                             <td>
-                                <a href="/?page=s3-objects&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($bucket['Region']) ?>&bucket=<?= urlencode($bucket['Name']) ?>"
+                                <a href="<?= $basePath ?>?page=s3-objects&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($bucket['Region']) ?>&bucket=<?= urlencode($bucket['Name']) ?>"
                                    class="btn btn-outline btn-sm">Browse</a>
                             </td>
                         </tr>

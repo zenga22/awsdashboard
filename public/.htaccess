@@ -1,5 +1,8 @@
 RewriteEngine On
 
+# Set this to your sub-directory path (leave as "/" if serving from root)
+RewriteBase /awsdashboard/
+
 # Serve existing files and directories directly
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d

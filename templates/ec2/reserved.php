@@ -10,7 +10,7 @@
 <!-- Region tabs -->
 <div class="region-tabs">
     <?php foreach ($regions as $r): ?>
-        <a href="/?page=ec2-reserved&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($r) ?>"
+        <a href="<?= $basePath ?>?page=ec2-reserved&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($r) ?>"
            class="<?= $r === $currentRegion ? 'active' : '' ?>">
             <?= htmlspecialchars($r) ?>
         </a>

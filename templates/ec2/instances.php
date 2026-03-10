@@ -12,7 +12,7 @@ use AwsDashboard\Services\S3Service;
 <!-- Region tabs -->
 <div class="region-tabs">
     <?php foreach ($regions as $r): ?>
-        <a href="/?page=ec2-instances&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($r) ?>"
+        <a href="<?= $basePath ?>?page=ec2-instances&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($r) ?>"
            class="<?= $r === $currentRegion ? 'active' : '' ?>">
             <?= htmlspecialchars($r) ?>
         </a>
@@ -72,7 +72,7 @@ use AwsDashboard\Services\S3Service;
                     <?php foreach ($instances as $inst): ?>
                         <tr>
                             <td>
-                                <a href="/?page=ec2-detail&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>&instance=<?= urlencode($inst['InstanceId']) ?>">
+                                <a href="<?= $basePath ?>?page=ec2-detail&profile=<?= urlencode($currentProfile) ?>&region=<?= urlencode($currentRegion) ?>&instance=<?= urlencode($inst['InstanceId']) ?>">
                                     <?= htmlspecialchars($inst['Name'] ?: '(no name)') ?>
                                 </a>
                             </td>

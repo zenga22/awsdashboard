@@ -17,6 +17,12 @@ use AwsDashboard\Services\Ec2Service;
 use AwsDashboard\Services\S3Service;
 
 // ---------------------------------------------------------------------------
+// Base path – auto-detected from SCRIPT_NAME so the app works in a
+// sub-directory (e.g. /awsdashboard/) or at the document root (/).
+// ---------------------------------------------------------------------------
+define('BASE_PATH', rtrim(dirname($_SERVER['SCRIPT_NAME']), '/') . '/');
+
+// ---------------------------------------------------------------------------
 // Session & CSRF
 // ---------------------------------------------------------------------------
 session_start();
@@ -64,6 +70,9 @@ $flashSuccess = $_SESSION['flash_success'] ?? null;
 $flashError   = $_SESSION['flash_error'] ?? null;
 unset($_SESSION['flash_success'], $_SESSION['flash_error']);
 
+// Expose base path for templates
+$basePath = BASE_PATH;
+
 // ---------------------------------------------------------------------------
 // Handle POST actions (reboot, delete, etc.)
 // ---------------------------------------------------------------------------
@@ -72,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!verifyCsrf()) {
         $_SESSION['flash_error'] = 'Invalid CSRF token. Please try again.';
-        header('Location: ' . $_SERVER['REQUEST_URI']);
+        header('Location: ' . htmlspecialchars($_SERVER['REQUEST_URI']));
         exit;
     }
 
@@ -87,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             // Redirect back
             $returnPage = isset($_POST['return_page']) ? $_POST['return_page'] : 'ec2-instances';
-            header('Location: /?page=' . urlencode($returnPage) .
+            header('Location: ' . BASE_PATH . '?page=' . urlencode($returnPage) .
                    '&profile=' . urlencode($currentProfile) .
                    '&region=' . urlencode($currentRegion));
             exit;
@@ -104,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Redirect to parent folder
             $parentPrefix = dirname($key);
             $parentPrefix = ($parentPrefix === '.' || $parentPrefix === '') ? '' : $parentPrefix . '/';
-            header('Location: /?page=s3-objects' .
+            header('Location: ' . BASE_PATH . '?page=s3-objects' .
                    '&profile=' . urlencode($currentProfile) .
                    '&region=' . urlencode($currentRegion) .
                    '&bucket=' . urlencode($bucket) .
@@ -113,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Unknown action – redirect home
-    header('Location: /?page=dashboard&profile=' . urlencode($currentProfile) . '&region=' . urlencode($currentRegion));
+    header('Location: ' . BASE_PATH . '?page=dashboard&profile=' . urlencode($currentProfile) . '&region=' . urlencode($currentRegion));
     exit;
 }
 
@@ -179,15 +188,15 @@ switch ($page) {
 
         if (!$instance) {
             $_SESSION['flash_error'] = 'Instance not found.';
-            header('Location: /?page=ec2-instances&profile=' . urlencode($currentProfile) . '&region=' . urlencode($currentRegion));
+            header('Location: ' . BASE_PATH . '?page=ec2-instances&profile=' . urlencode($currentProfile) . '&region=' . urlencode($currentRegion));
             exit;
         }
 
         $pageTitle   = 'Instance: ' . ($instance['Name'] ?: $instance['InstanceId']);
         $activeNav   = 'ec2-instances';
         $breadcrumbs = [
-            ['label' => 'EC2',       'url' => '/?page=ec2-instances&profile=' . urlencode($currentProfile) . '&region=' . urlencode($currentRegion)],
-            ['label' => 'Instances', 'url' => '/?page=ec2-instances&profile=' . urlencode($currentProfile) . '&region=' . urlencode($currentRegion)],
+            ['label' => 'EC2',       'url' => BASE_PATH . '?page=ec2-instances&profile=' . urlencode($currentProfile) . '&region=' . urlencode($currentRegion)],
+            ['label' => 'Instances', 'url' => BASE_PATH . '?page=ec2-instances&profile=' . urlencode($currentProfile) . '&region=' . urlencode($currentRegion)],
             ['label' => $instance['InstanceId'], 'url' => null],
         ];
 
@@ -252,8 +261,8 @@ switch ($page) {
         $pageTitle = 'S3: ' . $bucket;
         $activeNav = 's3-buckets';
         $breadcrumbs = [
-            ['label' => 'S3',      'url' => '/?page=s3-buckets&profile=' . urlencode($currentProfile) . '&region=' . urlencode($currentRegion)],
-            ['label' => 'Buckets', 'url' => '/?page=s3-buckets&profile=' . urlencode($currentProfile) . '&region=' . urlencode($currentRegion)],
+            ['label' => 'S3',      'url' => BASE_PATH . '?page=s3-buckets&profile=' . urlencode($currentProfile) . '&region=' . urlencode($currentRegion)],
+            ['label' => 'Buckets', 'url' => BASE_PATH . '?page=s3-buckets&profile=' . urlencode($currentProfile) . '&region=' . urlencode($currentRegion)],
             ['label' => $bucket,   'url' => null],
         ];
 
@@ -277,8 +286,8 @@ switch ($page) {
         $pageTitle = 'Object: ' . basename($key);
         $activeNav = 's3-buckets';
         $breadcrumbs = [
-            ['label' => 'S3',      'url' => '/?page=s3-buckets&profile=' . urlencode($currentProfile) . '&region=' . urlencode($currentRegion)],
-            ['label' => $bucket,   'url' => '/?page=s3-objects&profile=' . urlencode($currentProfile) . '&region=' . urlencode($currentRegion) . '&bucket=' . urlencode($bucket)],
+            ['label' => 'S3',      'url' => BASE_PATH . '?page=s3-buckets&profile=' . urlencode($currentProfile) . '&region=' . urlencode($currentRegion)],
+            ['label' => $bucket,   'url' => BASE_PATH . '?page=s3-objects&profile=' . urlencode($currentProfile) . '&region=' . urlencode($currentRegion) . '&bucket=' . urlencode($bucket)],
             ['label' => basename($key), 'url' => null],
         ];
 
@@ -301,7 +310,7 @@ switch ($page) {
         $content = function () {
             echo '<div class="empty-state"><div class="icon">&#9888;</div>';
             echo '<p>Page not found.</p>';
-            echo '<a href="/?page=dashboard" class="btn btn-primary" style="margin-top:16px;">Go to Dashboard</a></div>';
+            echo '<a href="' . BASE_PATH . '?page=dashboard" class="btn btn-primary" style="margin-top:16px;">Go to Dashboard</a></div>';
         };
         break;
 }
